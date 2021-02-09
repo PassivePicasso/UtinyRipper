@@ -129,11 +129,11 @@ namespace uTinyRipper.Converters
 			OverrideYamlExporter(ClassIDType.ClusterInputManager);
 			OverrideYamlExporter(ClassIDType.NavMeshData);
 			OverrideYamlExporter(ClassIDType.UnityConnectSettings);
-			OverrideYamlExporter(ClassIDType.AvatarMask1);
+			OverrideYamlExporter(ClassIDType.AvatarMask);
 			OverrideYamlExporter(ClassIDType.ParticleSystemForceField);
 			OverrideYamlExporter(ClassIDType.OcclusionCullingData);
 			OverrideYamlExporter(ClassIDType.PrefabInstance);
-			OverrideYamlExporter(ClassIDType.AvatarMask);
+			OverrideYamlExporter(ClassIDType.AvatarMaskOld);
 			OverrideYamlExporter(ClassIDType.SceneAsset);
 			OverrideYamlExporter(ClassIDType.LightmapParameters);
 			OverrideYamlExporter(ClassIDType.SpriteAtlas);
@@ -252,7 +252,7 @@ namespace uTinyRipper.Converters
 			EventExportPreparationFinished?.Invoke();
 
 			EventExportStarted?.Invoke();
-			ProjectAssetContainer container = new ProjectAssetContainer(this, virtualFile, fileCollection.FetchAssets(), collections);
+			ProjectAssetContainer container = new ProjectAssetContainer(this, options, virtualFile, fileCollection.FetchAssets(), collections);
 			for (int i = 0; i < collections.Count; i++)
 			{
 				IExportCollection collection = collections[i];

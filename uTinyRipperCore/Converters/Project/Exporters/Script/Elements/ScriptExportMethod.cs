@@ -1,14 +1,13 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
 
 namespace uTinyRipper.Converters.Script
 {
-	// TODO: add constructor support
 	public abstract class ScriptExportMethod
 	{
 		public abstract void Init(IScriptExportManager manager);
 
-		public void Export(TextWriter writer, int intent)
+		public virtual void Export(TextWriter writer, int intent)
 		{
 			writer.WriteIndent(intent);
 			string returnTypeName = ReturnType.GetTypeNestedName(DeclaringType);
@@ -25,6 +24,14 @@ namespace uTinyRipper.Converters.Script
 			writer.WriteLine(")");
 			writer.WriteIndent(intent);
 			writer.WriteLine("{");
+			foreach (ScriptExportParameter parameter in Parameters)
+			{
+				if (parameter.ByRef == ScriptExportParameter.ByRefType.Out)
+				{
+					writer.WriteIndent(intent + 1);
+					writer.WriteLine("{0} = default({1});", parameter.Name, parameter.Type.GetTypeNestedName(DeclaringType));
+				}
+			}
 			if (ReturnType.TypeName != MonoUtils.CVoidName)
 			{
 				writer.WriteIndent(intent + 1);
@@ -34,7 +41,7 @@ namespace uTinyRipper.Converters.Script
 			writer.WriteLine("}");
 		}
 
-		public void GetUsedNamespaces(ICollection<string> namespaces)
+		public virtual void GetUsedNamespaces(ICollection<string> namespaces)
 		{
 			ReturnType.GetTypeNamespaces(namespaces);
 			foreach (ScriptExportParameter parameter in Parameters)
@@ -61,7 +68,7 @@ namespace uTinyRipper.Converters.Script
 		public abstract ScriptExportType ReturnType { get; }
 		public abstract IReadOnlyList<ScriptExportParameter> Parameters { get; }
 
-		protected abstract string Keyword { get; }
+		public abstract string Keyword { get; }
 
 		protected const string PublicKeyWord = "public";
 		protected const string InternalKeyWord = "internal";

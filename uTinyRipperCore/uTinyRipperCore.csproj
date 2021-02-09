@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netstandard1.3</TargetFramework>
-    <LangVersion>7.2</LangVersion>
+    <TargetFramework>netstandard1.5</TargetFramework>
+    <LangVersion>7.3</LangVersion>
 	<AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
 	<AssemblyName>uTinyRipperCore</AssemblyName>
 	<RootNamespace>uTinyRipper</RootNamespace>
@@ -15,6 +15,8 @@
     <DefineConstants>DEBUG;TRACE;NET_STANDARD;UNIVERSAL</DefineConstants>
     <CheckForOverflowUnderflow>true</CheckForOverflowUnderflow>
     <OutputPath>..\Bins\$(Configuration)\</OutputPath>
+    <DebugType>full</DebugType>
+    <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Virtual|AnyCPU'">

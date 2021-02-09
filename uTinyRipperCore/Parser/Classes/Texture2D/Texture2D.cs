@@ -35,7 +35,15 @@ namespace uTinyRipper.Classes
 		/// <summary>
 		/// 2.6.0 and greater
 		/// </summary>
-		public static bool HasHasable(Version version) => version.IsGreaterEqual(2, 6);
+		public static bool HasReadable(Version version) => version.IsGreaterEqual(2, 6);
+		/// <summary>
+		/// 2019.3.1 and greater
+		/// </summary>
+		public static bool HasIgnoreMasterTextureLimit(Version version) => version.IsGreaterEqual(2019, 3, 1);
+		/// <summary>
+		/// 2019.4.9 and greater
+		/// </summary>
+		public static bool HasIsPreProcessed(Version version) => version.IsGreaterEqual(2019, 4, 9);
 		/// <summary>
 		/// From 3.0.0 to 5.5.0 exclusive
 		/// </summary>
@@ -84,6 +92,7 @@ namespace uTinyRipper.Classes
 			return false;
 		}
 
+#if UNIVERSAL
 		/// <summary>
 		/// <para>0 - less than 5.0.0</para>
 		/// <para>1 - less than 2018.2</para>
@@ -101,6 +110,7 @@ namespace uTinyRipper.Classes
 			}
 			return 2;
 		}
+#endif
 
 		public virtual TextureImporter GenerateTextureImporter(IExportContainer container)
 		{
@@ -121,7 +131,7 @@ namespace uTinyRipper.Classes
 			return true;
 		}
 
-		public IReadOnlyList<byte> GetImageData()
+		public byte[] GetImageData()
 		{
 			byte[] data = m_imageData;
 			if (HasStreamData(File.Version) && StreamData.IsSet)
@@ -178,9 +188,17 @@ namespace uTinyRipper.Classes
 				MipCount = reader.ReadInt32();
 			}
 
-			if (HasHasable(reader.Version))
+			if (HasReadable(reader.Version))
 			{
 				IsReadable = reader.ReadBoolean();
+			}
+			if (HasIgnoreMasterTextureLimit(reader.Version))
+			{
+				IgnoreMasterTextureLimit = reader.ReadBoolean();
+			}
+			if (HasIsPreProcessed(reader.Version))
+			{
+				IsPreProcessed = reader.ReadBoolean();
 			}
 			if (HasReadAllowed(reader.Version))
 			{
@@ -241,6 +259,14 @@ namespace uTinyRipper.Classes
 			node.Add(TextureFormatName, (int)TextureFormat);
 			node.Add(MipCountName, MipCount);
 			node.Add(IsReadableName, IsReadable);
+			if (HasIgnoreMasterTextureLimit(container.ExportVersion))
+			{
+				node.Add(IgnoreMasterTextureLimitName, IgnoreMasterTextureLimit);
+			}
+			if (HasIsPreProcessed(container.ExportVersion))
+			{
+				node.Add(IsPreProcessedName, IsPreProcessed);
+			}
 			if (HasStreamingMipmaps(container.ExportVersion))
 			{
 				node.Add(StreamingMipmapsName, StreamingMipmaps);
@@ -255,8 +281,8 @@ namespace uTinyRipper.Classes
 			node.Add(TextureSettingsName, TextureSettings.ExportYAML(container));
 			node.Add(LightmapFormatName, (int)LightmapFormat);
 			node.Add(ColorSpaceName, (int)ColorSpace);
-			IReadOnlyList<byte> imageData = GetExportImageData();
-			node.Add(ImageDataName, imageData.Count);
+			byte[] imageData = GetExportImageData();
+			node.Add(ImageDataName, imageData.Length);
 			node.Add(container.Layout.TypelessdataName, imageData.ExportYAML());
 			StreamingInfo streamData = new StreamingInfo(true);
 			node.Add(StreamDataName, streamData.ExportYAML(container));
@@ -271,7 +297,7 @@ namespace uTinyRipper.Classes
 			return true;
 #endif
 		}
-		private IReadOnlyList<byte> GetExportImageData()
+		private byte[] GetExportImageData()
 		{
 			if (CheckAssetIntegrity())
 			{
@@ -303,6 +329,8 @@ namespace uTinyRipper.Classes
 		public TextureFormat TextureFormat { get; set; }
 		public int MipCount { get; set; }
 		public bool IsReadable { get; set; }
+		public bool IgnoreMasterTextureLimit { get; set; }
+		public bool IsPreProcessed { get; set; }
 		public bool ReadAllowed { get; set; }
 		public bool StreamingMipmaps { get; set; }
 		public int StreamingMipmapsPriority { get; set; }
@@ -321,6 +349,8 @@ namespace uTinyRipper.Classes
 		public const string TextureFormatName = "m_TextureFormat";
 		public const string MipCountName = "m_MipCount";
 		public const string IsReadableName = "m_IsReadable";
+		public const string IgnoreMasterTextureLimitName = "m_IgnoreMasterTextureLimit";
+		public const string IsPreProcessedName = "m_IsPreProcessed";
 		public const string StreamingMipmapsName = "m_StreamingMipmaps";
 		public const string StreamingMipmapsPriorityName = "m_StreamingMipmapsPriority";
 		public const string AlphaIsTransparencyName = "m_AlphaIsTransparency";

@@ -11,13 +11,6 @@ using uTinyRipperGUI.Exporters;
 using uTinyRipperGUI.Properties;
 using uTinyRipperGUI.Windows;
 
-#if VIRTUAL
-using System.Windows.Automation.Peers;
-using System.Windows.Automation.Provider;
-#elif !DEBUG
-using uTinyRipper.SerializedFiles;
-#endif
-
 using Object = uTinyRipper.Classes.Object;
 using Version = uTinyRipper.Version;
 
@@ -77,7 +70,7 @@ namespace uTinyRipperGUI
 					continue;
 				}
 				Logger.Log(LogType.Warning, LogCategory.General, MultiFileStream.IsMultiFile(file) ?
-					$"File '{file}' doesn't has all parts for combining" :
+					$"File '{file}' doesn't have all parts for combining" :
 					$"Neither file nor directory with path '{file}' exists");
 				return false;
 			}
@@ -94,14 +87,12 @@ namespace uTinyRipperGUI
 		{
 			string[] files = (string[])data;
 
+			OnImportStarted();
 #if !DEBUG
 			try
 #endif
 			{
-				OnImportStarted();
 				GameStructure = GameStructure.Load(files);
-				Validate();
-				OnImportFinished();
 			}
 #if !DEBUG
 			catch (SerializedFileException ex)
@@ -116,21 +107,37 @@ namespace uTinyRipperGUI
 			}
 #endif
 
-			Dispatcher.Invoke(() =>
-				{
-					IntroText.Text = "Files has been loaded";
-					ExportButton.Visibility = Visibility.Visible;
+			if (GameStructure.IsValid)
+			{
+				Validate();
+			}
+			OnImportFinished();
 
-					Fileview.AddItem(GameStructure.FileCollection);
-					Fileview.Refresh();
+			if (GameStructure.IsValid)
+			{
+				Dispatcher.Invoke(() =>
+					{
+						IntroText.Text = "Files have been loaded";
+						ExportButton.Visibility = Visibility.Visible;
+
+						Fileview.AddItem(GameStructure.FileCollection);
+						Fileview.Refresh();
 
 #if VIRTUAL
-					ButtonAutomationPeer peer = new ButtonAutomationPeer(ExportButton);
-					IInvokeProvider invokeProv = peer.GetPattern(PatternInterface.Invoke) as IInvokeProvider;
-					invokeProv.Invoke();
+						OnExportButtonClicked(null, null);
 #endif
-				}
-			);
+					}
+				);
+			}
+			else
+			{
+				Dispatcher.Invoke(() =>
+					{
+						OnResetButtonClicked(null, null);
+						Logger.Log(LogType.Warning, LogCategory.Import, "No game files found");
+					}
+				);
+			}
 		}
 
 		private void ExportFiles(object data)
@@ -248,11 +255,11 @@ namespace uTinyRipperGUI
 			});
 		}
 
-		private void OpenGameFolder(string plaformName)
+		private void OpenGameFolder(string platformName)
 		{
 			using (System.Windows.Forms.FolderBrowserDialog folderDialog = new System.Windows.Forms.FolderBrowserDialog())
 			{
-				folderDialog.Description = $"Select {plaformName} game folder";
+				folderDialog.Description = $"Select {platformName} game folder";
 				folderDialog.SelectedPath = Settings.Default.ImportFolderPath;
 				System.Windows.Forms.DialogResult result = folderDialog.ShowDialog();
 				if (result == System.Windows.Forms.DialogResult.OK)
@@ -326,19 +333,16 @@ namespace uTinyRipperGUI
 
 		private void OnResetButtonClicked(object sender, RoutedEventArgs e)
 		{
-			if (ResetButton.Visibility == Visibility.Visible)
-			{
-				Fileview.Clear();
-				IntroText.Text = m_initialIntroText;
-				StatusText.Content = m_initialStatusText;
-				MainGrid.AllowDrop = true;
-				PostExportButton.Visibility = Visibility.Hidden;
-				ResetButton.Visibility = Visibility.Hidden;
-				OutputView.Clear();
-				m_processingFiles = null;
+			Fileview.Clear();
+			IntroText.Text = m_initialIntroText;
+			StatusText.Content = m_initialStatusText;
+			MainGrid.AllowDrop = true;
+			PostExportButton.Visibility = Visibility.Hidden;
+			ResetButton.Visibility = Visibility.Hidden;
+			OutputView.Clear();
+			m_processingFiles = null;
 
-				GameStructure.Dispose();
-			}
+			GameStructure.Dispose();
 		}
 
 		private void OnExitButtonClicked(object sender, RoutedEventArgs e)
@@ -387,6 +391,12 @@ namespace uTinyRipperGUI
 					if (result == System.Windows.Forms.DialogResult.OK)
 					{
 						string path = Path.Combine(folderDialog.SelectedPath, GameStructure.Name);
+						if (File.Exists(path))
+						{
+							MessageBox.Show(this, "Unable to export assets into selected folder. Choose another one.",
+									"Invalid folder", MessageBoxButton.OK, MessageBoxImage.Warning);
+							continue;
+						}
 						if (Directory.Exists(path))
 						{
 							if (Directory.EnumerateFiles(path).Any())
@@ -430,7 +440,7 @@ namespace uTinyRipperGUI
 				{
 					return;
 				}
-				if (m_gameStructure != null)
+				if (m_gameStructure != null && m_gameStructure.IsValid)
 				{
 					m_gameStructure.FileCollection.Exporter.EventExportFinished -= OnExportFinished;
 					m_gameStructure.FileCollection.Exporter.EventExportProgressUpdated -= OnExportProgressUpdated;
@@ -439,7 +449,7 @@ namespace uTinyRipperGUI
 					m_gameStructure.FileCollection.Exporter.EventExportPreparationStarted -= OnExportPreparationStarted;
 				}
 				m_gameStructure = value;
-				if (value != null)
+				if (value != null && value.IsValid)
 				{
 					value.FileCollection.Exporter.EventExportPreparationStarted += OnExportPreparationStarted;
 					value.FileCollection.Exporter.EventExportPreparationFinished += OnExportPreparationFinished;

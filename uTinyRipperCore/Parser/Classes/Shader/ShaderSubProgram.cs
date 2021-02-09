@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace uTinyRipper.Classes.Shaders
 {
-	public struct ShaderSubProgram : IAssetReadable
+	public struct ShaderSubProgram : IAssetReadable, IAssetWritable
 	{
 		/// <summary>
 		/// 2019.1 and greater
@@ -24,7 +24,7 @@ namespace uTinyRipper.Classes.Shaders
 		/// <summary>
 		/// 5.5.0 and greater
 		/// </summary>
-		private static bool HasUnknown4(Version version) => Shader.IsSerialized(version);
+		private static bool HasStatsTempRegister(Version version) => Shader.IsSerialized(version);
 		/// <summary>
 		/// 5.5.0 and greater
 		/// </summary>
@@ -32,18 +32,12 @@ namespace uTinyRipper.Classes.Shaders
 		/// <summary>
 		/// 2017.3 and greater
 		/// </summary>
-		private static bool HasStructParameters(Version version)
-		{
-			return version.IsGreaterEqual(2017, 3);
-		}
+		private static bool HasStructParameters(Version version) => version.IsGreaterEqual(2017, 3);
 		/// <summary>
 		/// 2018.2 and greater
 		/// </summary>
-		private static bool HasNewTextureParams(Version version)
-		{
-			return version.IsGreaterEqual(2018, 2);
-		}
-		private static int GetMagicNumber(Version version)
+		private static bool HasNewTextureParams(Version version) => version.IsGreaterEqual(2018, 2);
+		private static int GetExpectedProgramVersion(Version version)
 		{
 			if (version.IsEqual(5, 3))
 			{
@@ -77,19 +71,19 @@ namespace uTinyRipper.Classes.Shaders
 
 		public void Read(AssetReader reader)
 		{
-			int magic = reader.ReadInt32();
-			if (magic != GetMagicNumber(reader.Version))
+			int version = reader.ReadInt32();
+			if (version != GetExpectedProgramVersion(reader.Version))
 			{
-				throw new Exception($"Magic number {magic} doesn't match");
+				throw new Exception($"Shader program version {version} doesn't match");
 			}
 
-			ProgramType = (ShaderGpuProgramType)reader.ReadInt32();
-			int unknown1 = reader.ReadInt32();
-			int unknown2 = reader.ReadInt32();
-			int unknown3 = reader.ReadInt32();
-			if (HasUnknown4(reader.Version))
+			ProgramType = reader.ReadInt32();
+			StatsALU = reader.ReadInt32();
+			StatsTEX = reader.ReadInt32();
+			StatsFlow = reader.ReadInt32();
+			if (HasStatsTempRegister(reader.Version))
 			{
-				int unknown4 = reader.ReadInt32();
+				StatsTempRegister = reader.ReadInt32();
 			}
 
 			GlobalKeywords = reader.ReadStringArray();
@@ -105,7 +99,7 @@ namespace uTinyRipper.Classes.Shaders
 			ShaderBindChannel[] channels = new ShaderBindChannel[bindCount];
 			for (int i = 0; i < bindCount; i++)
 			{
-				ShaderChannel source = (ShaderChannel)reader.ReadUInt32();
+				uint source = reader.ReadUInt32();
 				VertexComponent target = (VertexComponent)reader.ReadUInt32();
 				ShaderBindChannel channel = new ShaderBindChannel(source, target);
 				channels[i] = channel;
@@ -304,6 +298,12 @@ namespace uTinyRipper.Classes.Shaders
 			}
 		}
 
+		public void Write(AssetWriter writer)
+		{
+#warning TODO:
+			throw new NotImplementedException();
+		}
+
 		public void Export(ShaderWriter writer, ShaderType type)
 		{
 			if (GlobalKeywords.Length > 0)
@@ -325,7 +325,8 @@ namespace uTinyRipper.Classes.Shaders
 			}
 
 #warning TODO: convertion (DX to HLSL)
-			writer.Write("\"!!{0}", ProgramType.ToShaderName(writer.Platform, type));
+			ShaderGpuProgramType programType = GetProgramType(writer.Version);
+			writer.Write("\"{0}", programType.ToProgramDataKeyword(writer.Platform, type));
 			if (ProgramData.Length > 0)
 			{
 				writer.Write("\n");
@@ -336,10 +337,23 @@ namespace uTinyRipper.Classes.Shaders
 			writer.Write('"');
 		}
 
-		public ShaderGpuProgramType ProgramType { get; set; }
-		/// <summary>
-		/// Keywords previously
-		/// </summary>
+		public ShaderGpuProgramType GetProgramType(Version version)
+		{
+			if (ShaderGpuProgramTypeExtensions.GpuProgramType55Relevant(version))
+			{
+				return ((ShaderGpuProgramType55)ProgramType).ToGpuProgramType();
+			}
+			else
+			{
+				return ((ShaderGpuProgramType53)ProgramType).ToGpuProgramType();
+			}
+		}
+
+		public int ProgramType { get; set; }
+		public int StatsALU { get; set; }
+		public int StatsTEX { get; set; }
+		public int StatsFlow { get; set; }
+		public int StatsTempRegister { get; set; }
 		public string[] GlobalKeywords { get; set; }
 		public string[] LocalKeywords { get; set; }
 		public byte[] ProgramData { get; set; }

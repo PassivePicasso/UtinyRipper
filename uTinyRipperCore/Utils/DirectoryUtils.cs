@@ -1,5 +1,8 @@
 using System;
 using System.IO;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 
 namespace uTinyRipper
 {
@@ -59,20 +62,41 @@ namespace uTinyRipper
 
 		public static string ToLongPath(string path, bool force)
 		{
-			if (path.StartsWith(LongPathPrefix, StringComparison.Ordinal))
+			if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
 			{
-				return path;
-			}
+				if (RunetimeUtils.IsRunningOnNetCore)
+				{
+					return path;
+				}
+				if (path.StartsWith(LongPathPrefix, StringComparison.Ordinal))
+				{
+					return path;
+				}
 
-			string fullPath = FileUtils.GetFullPath(path);
-			if (force || fullPath.Length >= MaxDirectoryLength)
-			{
-				return $"{LongPathPrefix}{fullPath}";
+				string fullPath = FileUtils.GetFullPath(path);
+				if (force || fullPath.Length >= MaxDirectoryLength)
+				{
+					return $"{LongPathPrefix}{fullPath}";
+				}
 			}
 			return path;
 		}
 
+		public static string FixInvalidPathCharacters(string path)
+		{
+			return PathRegex.Replace(path, string.Empty);
+		}
+
+		private static Regex GeneratePathRegex()
+		{
+			string invalidChars = new string(Path.GetInvalidFileNameChars().Except(new char[] { '\\', '/' }).ToArray());
+			string escapedChars = Regex.Escape(invalidChars);
+			return new Regex($"[{escapedChars}]");
+		}
+
 		public const string LongPathPrefix = @"\\?\";
 		public const int MaxDirectoryLength = 248;
+
+		private static readonly Regex PathRegex = GeneratePathRegex();
 	}
 }

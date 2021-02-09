@@ -15,7 +15,6 @@ using System.Security.Principal;
 using uTinyRipper;
 using uTinyRipper.Converters;
 using Object = uTinyRipper.Classes.Object;
-using Version = uTinyRipper.Version;
 
 namespace uTinyRipperConsole
 {
@@ -48,7 +47,7 @@ namespace uTinyRipperConsole
 					continue;
 				}
 				Console.WriteLine(MultiFileStream.IsMultiFile(arg) ?
-					$"File '{arg}' doesn't has all parts for combining" :
+					$"File '{arg}' doesn't have all parts for combining" :
 					$"Neither file nor directory with path '{arg}' exists");
 				Console.ReadKey();
 				return;

@@ -31,6 +31,10 @@ namespace uTinyRipper.Classes
 		/// </summary>
 		public static bool HasBuildTags(Version version) => version.IsGreaterEqual(5, 6);
 		/// <summary>
+		/// 5.6.0b3 and greater
+		/// </summary>
+		public static bool HasBuildGUID(Version version) => version.IsGreaterEqual(5, 6, 0, VersionType.Beta, 3);
+		/// <summary>
 		/// Less than 5.3.0
 		/// </summary>
 		public static bool HasHasRenderTexture(Version version) => version.IsLess(5, 3);
@@ -121,6 +125,9 @@ namespace uTinyRipper.Classes
 			if (HasBuildTags(reader.Version))
 			{
 				BuildTags = reader.ReadStringArray();
+			}
+			if (HasBuildGUID(reader.Version))
+			{
 				BuildGUID.Read(reader);
 			}
 
@@ -251,6 +258,6 @@ namespace uTinyRipper.Classes
 		public Dictionary<Hash128, Hash128> ScriptHashes { get; set; }
 		public int[] GraphicsAPIs { get; set; }
 
-		public GUID BuildGUID;
+		public UnityGUID BuildGUID;
 	}
 }

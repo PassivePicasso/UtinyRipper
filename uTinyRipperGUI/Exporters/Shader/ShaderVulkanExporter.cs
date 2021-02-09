@@ -16,13 +16,12 @@ namespace uTinyRipperGUI.Exporters
 			{
 				using (BinaryReader reader = new BinaryReader(ms))
 				{
-					const int SnippetCount = 5;
-					int unknown = reader.ReadInt32();
-					for (int i = 0; i < SnippetCount; i++)
+					int requirements = reader.ReadInt32();
+					int snippetCount = SerializedPass.HasProgRayTracing(writer.Version) ? 6 : 5;
+					for (int i = 0; i < snippetCount; i++)
 					{
 						int offset = reader.ReadInt32();
 						int size = reader.ReadInt32();
-
 						if (size > 0)
 						{
 							ExportSnippet(writer, ms, offset, size);
